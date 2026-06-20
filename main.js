@@ -16,22 +16,23 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // -----------------------------------------------------------------------------
 const AVATAR_CONFIG = {
   url: '/avatar.glb',
-  targetHeight: 1.1,        // the avatar is auto-scaled to be this "tall" in world units
+  targetHeight: 0.6,        // the avatar is auto-scaled to be this "tall" in world units
   distance: -2.4,           // how far in front of the camera it stands (negative = into the screen)
   groundY: -0.55,           // vertical position of the "table surface" the avatar stands on
   floatAmplitude: 0.045,    // how far it gently bobs up and down
   floatSpeed: 1.1,          // bob speed
   rotateSpeed: 0.08,        // slow idle spin, radians/sec (~78s for a full turn)
 
-  // If your avatar.glb renders lying on its side/back instead of standing
+  // If your avatar.glb renders lying down / sideways instead of standing
   // upright, it was exported with a different "up axis" than Three.js
-  // expects (Y-up). Fix it here instead of touching any logic below:
-  //   - Lying flat, face up/down  → try { x: -90, y: 0, z: 0 } or { x: 90, y: 0, z: 0 }
-  //   - Lying on its side          → try { x: 0, y: 0, z: -90 } or { x: 0, y: 0, z: 90 }
-  //   - Standing but facing away  → try { x: 0, y: 180, z: 0 }
-  // Start at 0/0/0, change one axis at a time, and reload — there's no way
-  // to know the right value without seeing the actual file.
-  uprightCorrectionDeg: { x: -90, y: 0, z: 0 }
+  // expects (Y-up). Fix it here instead of touching any logic below — try
+  // each row in turn, reloading after every change, until it stands up:
+  //   { x: 90,  y: 0,   z: 0 }   ← current guess
+  //   { x: -90, y: 0,   z: 0 }   ← previous guess (didn't work)
+  //   { x: 0,   y: 0,   z: 90 }
+  //   { x: 0,   y: 0,   z: -90 }
+  // Once it's standing but facing the wrong way, add y: 180.
+  uprightCorrectionDeg: { x: 90, y: 0, z: 0 }
 };
 
 // The voice-over script. Each line is shown in the speech bubble, timed
@@ -39,10 +40,12 @@ const AVATAR_CONFIG = {
 const MESSAGES = [
   'Hello Papa! ❤️',
   "Happy Father's Day.",
-
+  'Thank you for always trusting me, especially when nobody believed in me.',
+  'Thank you for all the pampering and unconditional love.',
   'Thank you for supporting my dreams and believing in me.',
-  'Whatever I become in life will always be because of your support.'
-  
+  'Whatever I become in life will always be because of your support.',
+  'I may not say it often, but I notice every sacrifice and every little thing you do for me.',
+  'I love you Papa. ❤️'
 ];
 
 // Used only if voice.mp3's real duration can't be read (e.g. file missing,
