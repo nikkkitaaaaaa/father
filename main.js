@@ -16,12 +16,12 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 // -----------------------------------------------------------------------------
 const AVATAR_CONFIG = {
   url: '/avatar.glb',
-  targetHeight: 0.6,        // the avatar is auto-scaled to be this "tall" in world units
+  targetHeight: 0.25,        // the avatar is auto-scaled to be this "tall" in world units
   distance: -2.4,           // how far in front of the camera it stands (negative = into the screen)
   groundY: -0.55,           // vertical position of the "table surface" the avatar stands on
   floatAmplitude: 0.045,    // how far it gently bobs up and down
   floatSpeed: 1.1,          // bob speed
-  rotateSpeed: 0.08,        // slow idle spin, radians/sec (~78s for a full turn)
+  rotateSpeed: 0,        // slow idle spin, radians/sec (~78s for a full turn)
 
   // If your avatar.glb renders lying down / sideways instead of standing
   // upright, it was exported with a different "up axis" than Three.js
@@ -249,9 +249,13 @@ function animate() {
   if (avatarRig) {
     // Float around the resting groundY, and spin steadily around the rig's
     // own vertical axis. Both act on the pivot group, not the raw model, so
-    // this is correct no matter how the source file itself was authored.
-    avatarRig.position.y = AVATAR_CONFIG.groundY + Math.sin(t * AVATAR_CONFIG.floatSpeed) * AVATAR_CONFIG.floatAmplitude;
-    avatarRig.rotation.y = t * AVATAR_CONFIG.rotateSpeed;
+avatarRig.position.y =
+    AVATAR_CONFIG.groundY +
+    Math.sin(t * AVATAR_CONFIG.floatSpeed) *
+    AVATAR_CONFIG.floatAmplitude;
+
+// Keep fixed facing direction
+avatarRig.rotation.y = 0;
   }
 
   renderer.render(scene, camera);
