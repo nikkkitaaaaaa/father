@@ -39,12 +39,10 @@ const AVATAR_CONFIG = {
 const MESSAGES = [
   'Hello Papa! ❤️',
   "Happy Father's Day.",
-  'Thank you for always trusting me, especially when nobody believed in me.',
-  'Thank you for all the pampering and unconditional love.',
+
   'Thank you for supporting my dreams and believing in me.',
-  'Whatever I become in life will always be because of your support.',
-  'I may not say it often, but I notice every sacrifice and every little thing you do for me.',
-  'I love you Papa. ❤️'
+  'Whatever I become in life will always be because of your support.'
+  
 ];
 
 // Used only if voice.mp3's real duration can't be read (e.g. file missing,
