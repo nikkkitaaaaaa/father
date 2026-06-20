@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <!-- viewport-fit=cover lets us use safe-area-inset-* for the iPhone notch/home bar -->
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1a120c" />
+  <title>Happy Father's Day ❤️</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+
+  <!-- =====================================================
+       LAYER 0 — LIVE CAMERA FEED (fullscreen background video)
+       Filled by main.js once getUserMedia() resolves.
+       ===================================================== -->
+  <video id="camera-feed" autoplay playsinline muted></video>
+
+  <!-- =====================================================
+       LAYER 1 — THREE.JS CANVAS (transparent, sits on top of the camera feed)
+       This is where the floating avatar is rendered, "standing" in front of you.
+       ===================================================== -->
+  <div id="three-mount"></div>
+
+  <!-- =====================================================
+       LAYER 2 — SPEECH BUBBLE (typewriter messages anchored near the avatar)
+       ===================================================== -->
+  <div id="speech-bubble" class="speech-bubble hidden" aria-live="polite">
+    <p id="speech-text"></p>
+  </div>
+
+  <!-- =====================================================
+       LAYER 3 — CELEBRATION OVERLAY (hearts, confetti, glowing heart, achievement)
+       ===================================================== -->
+  <div id="celebration" class="celebration hidden">
+    <div id="hearts-field" class="hearts-field"></div>
+    <div id="confetti-field" class="confetti-field"></div>
+    <div id="glow-heart" class="glow-heart">❤️</div>
+
+    <div id="achievement-card" class="achievement-card hidden">
+      <div class="achievement-shine"></div>
+      <div class="achievement-trophy">🏆</div>
+      <p class="achievement-eyebrow">Achievement Unlocked</p>
+      <h2 class="achievement-title">World's Best Dad</h2>
+      <p class="achievement-reward">Reward: Infinite Love ❤️</p>
+    </div>
+  </div>
+
+  <!-- =====================================================
+       LAYER 4 — START SCREEN (first thing the user sees)
+       ===================================================== -->
+  <div id="start-screen" class="start-screen">
+    <div class="start-glow"></div>
+    <p class="start-eyebrow">A little something for you</p>
+    <h1 class="start-title">Happy Father's&nbsp;Day</h1>
+    <p class="start-subtitle">Point your camera anywhere&nbsp;— someone special wants to say hello.</p>
+    <button id="start-button" class="start-button">
+      <span>Start Experience</span> <span class="heart-pulse">❤️</span>
+    </button>
+    <p class="start-hint">You'll be asked for camera access — that's just so the magic can appear in your room.</p>
+  </div>
+
+  <!-- Dark readability scrim, sits between the camera feed and the text layers -->
+  <div class="scrim"></div>
+
+  <!-- Hidden audio element for the voice message; controlled entirely from main.js -->
+  <audio id="voice-audio" src="/voice.mp3" preload="auto" playsinline></audio>
+
+  <script type="module" src="/main.js"></script>
+</body>
+</html>

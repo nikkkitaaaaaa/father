@@ -1,0 +1,9 @@
+Put your two files directly in this "public" folder, with these exact names:
+
+  avatar.glb
+  voice.mp3
+
+Vite serves everything in /public from the site root, so the app requests
+them at /avatar.glb and /voice.mp3 — matching what main.js expects.
+
+You can delete this txt file once your real assets are in place.

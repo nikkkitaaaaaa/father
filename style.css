@@ -1,0 +1,400 @@
+/* =========================================================================
+   DESIGN TOKENS
+   A warm, candlelit palette — this is an intimate keepsake, not a game UI.
+   ========================================================================= */
+:root {
+  --color-bg:         #1a120c;   /* deep warm charcoal, almost-black coffee */
+  --color-gold:        #e8b35a;  /* candlelight gold — primary accent */
+  --color-gold-soft:   #f3d8a0;  /* pale gold for highlights/text on dark */
+  --color-rose:         #ff5d6c;  /* warm rose-red for hearts */
+  --color-rose-deep:   #c4203a;  /* deeper red for confetti variety */
+  --color-cream:        #faf3e6;  /* warm off-white for body text */
+  --font-display: 'Fraunces', 'Iowan Old Style', Georgia, serif;
+  --font-body:    'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --safe-top:    env(safe-area-inset-top, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden; /* this is a fullscreen AR experience, not a scrolling page */
+  background: var(--color-bg);
+  font-family: var(--font-body);
+  color: var(--color-cream);
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* =========================================================================
+   LAYER 0 — CAMERA FEED
+   ========================================================================= */
+#camera-feed {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;       /* fill the screen, cropping rather than distorting */
+  z-index: 0;
+  background: #000;
+}
+
+/* =========================================================================
+   LAYER 1 — THREE.JS MOUNT (transparent canvas sits directly above the video)
+   ========================================================================= */
+#three-mount {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  z-index: 1;
+  pointer-events: none; /* let touches pass through to the page beneath if needed */
+}
+#three-mount canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+/* =========================================================================
+   SCRIM — soft dark gradient so white/gold text stays readable over any
+   camera background, without fully hiding the live feed.
+   ========================================================================= */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  background:
+    linear-gradient(to top, rgba(10, 7, 4, 0.65) 0%, rgba(10, 7, 4, 0.05) 28%, rgba(10, 7, 4, 0) 55%),
+    linear-gradient(to bottom, rgba(10, 7, 4, 0.55) 0%, rgba(10, 7, 4, 0) 22%);
+}
+
+/* =========================================================================
+   SPEECH BUBBLE — the typewriter messages, anchored low so it reads as
+   "coming from" the avatar standing on the table in front of the user.
+   ========================================================================= */
+.speech-bubble {
+  position: fixed;
+  left: 50%;
+  bottom: calc(14% + var(--safe-bottom));
+  transform: translateX(-50%);
+  z-index: 3;
+  width: min(560px, 88vw);
+  padding: 22px 26px;
+  border-radius: 22px;
+  background: rgba(34, 24, 16, 0.55);
+  backdrop-filter: blur(14px) saturate(140%);
+  -webkit-backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid rgba(232, 179, 90, 0.35);
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(255, 255, 255, 0.03) inset;
+  transition: opacity 0.6s ease, transform 0.6s ease;
+  opacity: 1;
+}
+/* the little tail pointing down toward the avatar */
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  left: 50%;
+  bottom: -10px;
+  transform: translateX(-50%) rotate(45deg);
+  width: 20px;
+  height: 20px;
+  background: rgba(34, 24, 16, 0.55);
+  border-right: 1px solid rgba(232, 179, 90, 0.35);
+  border-bottom: 1px solid rgba(232, 179, 90, 0.35);
+  border-radius: 0 0 4px 0;
+}
+.speech-bubble p {
+  margin: 0;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: clamp(1.05rem, 1rem + 1vw, 1.6rem);
+  line-height: 1.45;
+  text-align: center;
+  color: var(--color-gold-soft);
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+  min-height: 1.45em; /* prevents layout jump as the typewriter fills in */
+}
+/* blinking caret at the end of the typed text */
+.speech-bubble p::after {
+  content: '';
+  display: inline-block;
+  width: 2px;
+  height: 1em;
+  margin-left: 3px;
+  background: var(--color-gold);
+  vertical-align: -0.15em;
+  animation: caret-blink 0.9s steps(1) infinite;
+}
+.speech-bubble.typing-done p::after { opacity: 0; }
+
+@keyframes caret-blink {
+  0%, 49% { opacity: 1; }
+  50%, 100% { opacity: 0; }
+}
+
+.hidden { opacity: 0 !important; pointer-events: none !important; }
+.speech-bubble.hidden { transform: translateX(-50%) translateY(12px); }
+
+/* =========================================================================
+   START SCREEN
+   ========================================================================= */
+.start-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: max(32px, var(--safe-top)) 28px max(32px, var(--safe-bottom));
+  background:
+    radial-gradient(circle at 50% 30%, rgba(232, 179, 90, 0.18), transparent 55%),
+    linear-gradient(160deg, #221710 0%, #150d08 70%);
+  transition: opacity 0.9s ease, visibility 0.9s ease;
+}
+.start-screen.fade-out {
+  opacity: 0;
+  visibility: hidden;
+}
+.start-glow {
+  position: absolute;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232, 179, 90, 0.16), transparent 70%);
+  animation: glow-breathe 6s ease-in-out infinite;
+  pointer-events: none;
+}
+@keyframes glow-breathe {
+  0%, 100% { transform: scale(1); opacity: 0.7; }
+  50%      { transform: scale(1.15); opacity: 1; }
+}
+.start-eyebrow {
+  font-family: var(--font-body);
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  font-size: 0.72rem;
+  color: var(--color-gold);
+  opacity: 0.85;
+  margin: 0 0 14px;
+  animation: fade-up 0.9s ease both;
+}
+.start-title {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: clamp(2.4rem, 6vw + 1rem, 4.2rem);
+  margin: 0 0 14px;
+  color: var(--color-cream);
+  letter-spacing: -0.01em;
+  animation: fade-up 0.9s ease 0.1s both;
+}
+.start-subtitle {
+  font-family: var(--font-body);
+  font-size: clamp(0.95rem, 1.4vw + 0.6rem, 1.15rem);
+  color: rgba(250, 243, 230, 0.72);
+  max-width: 420px;
+  margin: 0 0 38px;
+  line-height: 1.5;
+  animation: fade-up 0.9s ease 0.2s both;
+}
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.start-button {
+  position: relative;
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.05rem;
+  color: #1a120c;
+  background: linear-gradient(135deg, var(--color-gold-soft), var(--color-gold));
+  border: none;
+  border-radius: 999px;
+  padding: 18px 38px;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  box-shadow: 0 10px 30px rgba(232, 179, 90, 0.35), 0 2px 0 rgba(255, 255, 255, 0.4) inset;
+  animation: fade-up 0.9s ease 0.3s both, button-breathe 3s ease-in-out 1.3s infinite;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.start-button:active {
+  transform: scale(0.96);
+}
+@keyframes button-breathe {
+  0%, 100% { box-shadow: 0 10px 30px rgba(232, 179, 90, 0.35), 0 2px 0 rgba(255,255,255,0.4) inset; }
+  50%      { box-shadow: 0 14px 38px rgba(232, 179, 90, 0.55), 0 2px 0 rgba(255,255,255,0.4) inset; }
+}
+.heart-pulse {
+  display: inline-block;
+  animation: heart-beat 1.2s ease-in-out infinite;
+}
+@keyframes heart-beat {
+  0%, 100% { transform: scale(1); }
+  50%      { transform: scale(1.18); }
+}
+.start-hint {
+  margin: 22px 0 0;
+  font-size: 0.78rem;
+  color: rgba(250, 243, 230, 0.45);
+  max-width: 320px;
+  animation: fade-up 0.9s ease 0.4s both;
+}
+
+/* =========================================================================
+   CELEBRATION OVERLAY (hearts, confetti, glowing heart, achievement card)
+   ========================================================================= */
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  pointer-events: none;
+  transition: opacity 0.6s ease;
+}
+
+.hearts-field, .confetti-field {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+}
+
+/* individual floating hearts — created dynamically in main.js */
+.floating-heart {
+  position: absolute;
+  bottom: -10%;
+  font-size: 1.6rem;
+  opacity: 0.9;
+  animation-name: float-up;
+  animation-timing-function: ease-in;
+  animation-fill-mode: forwards;
+  filter: drop-shadow(0 0 6px rgba(255, 93, 108, 0.6));
+}
+@keyframes float-up {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 1; }
+  100% { transform: translateY(-115vh) translateX(var(--drift, 0px)) rotate(var(--spin, 25deg)); opacity: 0; }
+}
+
+/* individual confetti pieces — created dynamically in main.js */
+.confetti-piece {
+  position: absolute;
+  top: -5%;
+  width: 8px;
+  height: 14px;
+  opacity: 0.95;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.4, 0.1, 0.6, 1);
+  animation-fill-mode: forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) translateX(0) rotate(0deg); opacity: 1; }
+  100% { transform: translateY(110vh) translateX(var(--drift, 0px)) rotate(var(--spin, 540deg)); opacity: 0.85; }
+}
+
+/* the single glowing heart that flies toward the viewer at the climax */
+.glow-heart {
+  position: absolute;
+  left: 50%;
+  top: 55%;
+  font-size: 2.4rem;
+  transform: translate(-50%, -50%) scale(0.2);
+  opacity: 0;
+  filter: drop-shadow(0 0 18px rgba(255, 93, 108, 0.9)) drop-shadow(0 0 40px rgba(255, 93, 108, 0.5));
+}
+.glow-heart.fly {
+  animation: heart-fly-in 1.8s cubic-bezier(0.2, 0.8, 0.3, 1) forwards;
+}
+@keyframes heart-fly-in {
+  0%   { transform: translate(-50%, -50%) scale(0.1); opacity: 0; }
+  55%  { opacity: 1; }
+  100% { transform: translate(-50%, -50%) scale(7); opacity: 0; }
+}
+
+/* achievement medallion — styled like a warm wax seal, not a game badge */
+.achievement-card {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -45%) scale(0.85);
+  width: min(380px, 84vw);
+  padding: 38px 30px 32px;
+  text-align: center;
+  border-radius: 26px;
+  background: linear-gradient(165deg, rgba(48, 33, 20, 0.92), rgba(26, 18, 12, 0.95));
+  border: 1px solid rgba(232, 179, 90, 0.4);
+  box-shadow: 0 0 0 1px rgba(255,255,255,0.04) inset, 0 25px 60px rgba(0,0,0,0.55), 0 0 60px rgba(232, 179, 90, 0.18);
+  opacity: 0;
+  transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.8, 0.3, 1);
+  overflow: hidden;
+}
+.achievement-card.reveal {
+  opacity: 1;
+  transform: translate(-50%, -50%) scale(1);
+}
+.achievement-shine {
+  position: absolute;
+  inset: -40%;
+  background: conic-gradient(from 0deg, transparent 0deg, rgba(232,179,90,0.18) 40deg, transparent 90deg);
+  animation: rotate-shine 6s linear infinite;
+}
+@keyframes rotate-shine {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
+.achievement-trophy {
+  position: relative;
+  font-size: 2.6rem;
+  margin-bottom: 6px;
+  animation: heart-beat 2.4s ease-in-out infinite;
+}
+.achievement-eyebrow {
+  position: relative;
+  margin: 6px 0 4px;
+  font-size: 0.72rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+.achievement-title {
+  position: relative;
+  font-family: var(--font-display);
+  font-size: clamp(1.6rem, 4vw, 2.1rem);
+  margin: 0 0 10px;
+  color: var(--color-cream);
+}
+.achievement-reward {
+  position: relative;
+  margin: 0;
+  font-size: 0.95rem;
+  color: rgba(250, 243, 230, 0.78);
+}
+
+/* =========================================================================
+   RESPONSIVE — Android Chrome & iPhone Safari
+   ========================================================================= */
+@media (max-width: 420px) {
+  .start-title { font-size: clamp(2rem, 9vw, 2.8rem); }
+  .speech-bubble { bottom: calc(12% + var(--safe-bottom)); padding: 18px 20px; }
+  .achievement-card { padding: 30px 22px 26px; }
+}
+
+/* short / landscape phones — keep the bubble from colliding with the avatar */
+@media (max-height: 480px) {
+  .speech-bubble { bottom: calc(6% + var(--safe-bottom)); width: min(480px, 80vw); }
+  .start-subtitle { margin-bottom: 22px; }
+}
+
+/* Respect reduced-motion preferences where it doesn't break the core experience */
+@media (prefers-reduced-motion: reduce) {
+  .start-glow, .heart-pulse, .achievement-trophy, .achievement-shine {
+    animation: none !important;
+  }
+}
