@@ -21,7 +21,17 @@ const AVATAR_CONFIG = {
   groundY: -0.55,           // vertical position of the "table surface" the avatar stands on
   floatAmplitude: 0.045,    // how far it gently bobs up and down
   floatSpeed: 1.1,          // bob speed
-  rotateSpeed: 0.18         // slow idle spin, radians/sec
+  rotateSpeed: 0.08,        // slow idle spin, radians/sec (~78s for a full turn)
+
+  // If your avatar.glb renders lying on its side/back instead of standing
+  // upright, it was exported with a different "up axis" than Three.js
+  // expects (Y-up). Fix it here instead of touching any logic below:
+  //   - Lying flat, face up/down  → try { x: -90, y: 0, z: 0 } or { x: 90, y: 0, z: 0 }
+  //   - Lying on its side          → try { x: 0, y: 0, z: -90 } or { x: 0, y: 0, z: 90 }
+  //   - Standing but facing away  → try { x: 0, y: 180, z: 0 }
+  // Start at 0/0/0, change one axis at a time, and reload — there's no way
+  // to know the right value without seeing the actual file.
+  uprightCorrectionDeg: { x: -90, y: 0, z: 0 }
 };
 
 // The voice-over script. Each line is shown in the speech bubble, timed
@@ -144,12 +154,12 @@ function loadAvatar() {
     loader.load(
       AVATAR_CONFIG.url,
       (gltf) => {
-        resolve(mountAvatar(gltf.scene));
+        resolve(mountAvatar(gltf.scene, true));
       },
       undefined,
       (error) => {
         console.warn('[avatar] Could not load avatar.glb — showing a placeholder instead.', error);
-        resolve(mountAvatar(createPlaceholderAvatar()));
+        resolve(mountAvatar(createPlaceholderAvatar(), false));
       }
     );
   });
@@ -162,14 +172,30 @@ function loadAvatar() {
  * the avatar sinking/rising over time: only the rig's position is touched
  * per-frame in animate(), while the model's one-time grounding offset
  * (computed in fitAvatarToStage) is set once and never overwritten.
+ *
+ * @param {THREE.Object3D} model
+ * @param {boolean} applyCorrection - whether to apply uprightCorrectionDeg
+ *   (true for the real loaded GLB, false for the placeholder, which is
+ *   already authored upright in code).
  */
-function mountAvatar(model) {
+function mountAvatar(model, applyCorrection) {
+  if (applyCorrection) applyUprightCorrection(model);
   fitAvatarToStage(model); // centers the model's own bounding box at local (0,0,0)
   avatarRig = new THREE.Group();
   avatarRig.add(model);
   avatarRig.position.set(0, AVATAR_CONFIG.groundY, AVATAR_CONFIG.distance);
   scene.add(avatarRig);
   return avatarRig;
+}
+
+/** Rotates the raw model to compensate for a mismatched up-axis on export. */
+function applyUprightCorrection(model) {
+  const deg = AVATAR_CONFIG.uprightCorrectionDeg;
+  model.rotation.set(
+    THREE.MathUtils.degToRad(deg.x),
+    THREE.MathUtils.degToRad(deg.y),
+    THREE.MathUtils.degToRad(deg.z)
+  );
 }
 
 /** Auto-scales the model and centers it at local (0,0,0) — feet on the floor,
