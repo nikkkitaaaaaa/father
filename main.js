@@ -23,7 +23,7 @@ const AVATAR_CONFIG = {
   floatSpeed: 1.1,          // bob speed
   rotateSpeed: 0.18         // slow idle spin, radians/sec
 };
-rotateSpeed: 0
+
 // The voice-over script. Each line is shown in the speech bubble, timed
 // proportionally against the real length of voice.mp3 (see runStoryline).
 const MESSAGES = [
@@ -61,7 +61,7 @@ const confettiField = document.getElementById('confetti-field');
 // -----------------------------------------------------------------------------
 // 3. THREE.JS STATE — populated by initThree()
 // -----------------------------------------------------------------------------
-let renderer, scene, camera, avatar, clock;
+let renderer, scene, camera, avatarRig, clock;
 
 /**
  * Sets up the transparent Three.js scene that floats above the camera feed.
@@ -143,26 +143,37 @@ function loadAvatar() {
     const loader = new GLTFLoader();
     loader.load(
       AVATAR_CONFIG.url,
-     (gltf) => {
-    avatarRoot = new THREE.Group();
-    avatar = gltf.scene;
-
-    // Fix image→GLB orientation
-    avatar.rotation.set(0, 0, Math.PI / 2);
-
-    avatarRoot.add(avatar);
-
-    fitAvatarToStage(avatarRoot);
-
-    scene.add(avatarRoot);
-
-    resolve(avatarRoot);
-},
+      (gltf) => {
+        resolve(mountAvatar(gltf.scene));
+      },
+      undefined,
+      (error) => {
+        console.warn('[avatar] Could not load avatar.glb — showing a placeholder instead.', error);
+        resolve(mountAvatar(createPlaceholderAvatar()));
+      }
     );
   });
 }
 
-/** Auto-scales and positions any model so it reliably stands in frame. */
+/**
+ * Wraps the model in a pivot Group ("rig") so floating + rotation always
+ * animate around the avatar's true vertical centerline, no matter where the
+ * source file's internal origin/root bone happens to be. This also fixes
+ * the avatar sinking/rising over time: only the rig's position is touched
+ * per-frame in animate(), while the model's one-time grounding offset
+ * (computed in fitAvatarToStage) is set once and never overwritten.
+ */
+function mountAvatar(model) {
+  fitAvatarToStage(model); // centers the model's own bounding box at local (0,0,0)
+  avatarRig = new THREE.Group();
+  avatarRig.add(model);
+  avatarRig.position.set(0, AVATAR_CONFIG.groundY, AVATAR_CONFIG.distance);
+  scene.add(avatarRig);
+  return avatarRig;
+}
+
+/** Auto-scales the model and centers it at local (0,0,0) — feet on the floor,
+ *  bounding box centered on X/Z — so a parent rig can rotate/float it cleanly. */
 function fitAvatarToStage(object3D) {
   const box = new THREE.Box3().setFromObject(object3D);
   const size = box.getSize(new THREE.Vector3());
@@ -171,15 +182,16 @@ function fitAvatarToStage(object3D) {
   const scale = AVATAR_CONFIG.targetHeight / currentHeight;
   object3D.scale.setScalar(scale);
 
-  // Re-measure after scaling, then place so the model's feet sit on groundY
-  // and it's horizontally centered at AVATAR_CONFIG.distance.
+  // Re-measure after scaling, then center the model on X/Z and drop its
+  // feet to local Y = 0. (0,0,0) becomes the model's true "center column",
+  // which is exactly what the parent rig then rotates/floats around.
   const scaledBox = new THREE.Box3().setFromObject(object3D);
   const scaledSize = scaledBox.getSize(new THREE.Vector3());
   const scaledCenter = scaledBox.getCenter(new THREE.Vector3());
 
   object3D.position.x += -scaledCenter.x;
-  object3D.position.z += AVATAR_CONFIG.distance - scaledCenter.z;
-  object3D.position.y += AVATAR_CONFIG.groundY - (scaledCenter.y - scaledSize.y / 2);
+  object3D.position.z += -scaledCenter.z;
+  object3D.position.y += -(scaledCenter.y - scaledSize.y / 2);
 }
 
 /** Placeholder so the experience still works before the real avatar.glb is added. */
@@ -204,20 +216,18 @@ function createPlaceholderAvatar() {
  * runs for the lifetime of the page.
  */
 function animate() {
-    requestAnimationFrame(animate);
+  requestAnimationFrame(animate);
+  const t = clock.getElapsedTime();
 
-    const t = clock.getElapsedTime();
+  if (avatarRig) {
+    // Float around the resting groundY, and spin steadily around the rig's
+    // own vertical axis. Both act on the pivot group, not the raw model, so
+    // this is correct no matter how the source file itself was authored.
+    avatarRig.position.y = AVATAR_CONFIG.groundY + Math.sin(t * AVATAR_CONFIG.floatSpeed) * AVATAR_CONFIG.floatAmplitude;
+    avatarRig.rotation.y = t * AVATAR_CONFIG.rotateSpeed;
+  }
 
-    if (avatarRoot) {
-        avatarRoot.position.y =
-            Math.sin(t * AVATAR_CONFIG.floatSpeed) *
-            AVATAR_CONFIG.floatAmplitude;
-
-        // Keep facing forward
-        avatarRoot.rotation.y = 0;
-    }
-
-    renderer.render(scene, camera);
+  renderer.render(scene, camera);
 }
 
 // -----------------------------------------------------------------------------
