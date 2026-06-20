@@ -23,7 +23,7 @@ const AVATAR_CONFIG = {
   floatSpeed: 1.1,          // bob speed
   rotateSpeed: 0.18         // slow idle spin, radians/sec
 };
-
+rotateSpeed: 0
 // The voice-over script. Each line is shown in the speech bubble, timed
 // proportionally against the real length of voice.mp3 (see runStoryline).
 const MESSAGES = [
@@ -143,20 +143,21 @@ function loadAvatar() {
     const loader = new GLTFLoader();
     loader.load(
       AVATAR_CONFIG.url,
-      (gltf) => {
-        avatar = gltf.scene;
-        fitAvatarToStage(avatar);
-        scene.add(avatar);
-        resolve(avatar);
-      },
-      undefined,
-      (error) => {
-        console.warn('[avatar] Could not load avatar.glb — showing a placeholder instead.', error);
-        avatar = createPlaceholderAvatar();
-        fitAvatarToStage(avatar);
-        scene.add(avatar);
-        resolve(avatar);
-      }
+     (gltf) => {
+    avatarRoot = new THREE.Group();
+    avatar = gltf.scene;
+
+    // Fix image→GLB orientation
+    avatar.rotation.set(0, 0, Math.PI / 2);
+
+    avatarRoot.add(avatar);
+
+    fitAvatarToStage(avatarRoot);
+
+    scene.add(avatarRoot);
+
+    resolve(avatarRoot);
+},
     );
   });
 }
@@ -203,15 +204,20 @@ function createPlaceholderAvatar() {
  * runs for the lifetime of the page.
  */
 function animate() {
-  requestAnimationFrame(animate);
-  const t = clock.getElapsedTime();
+    requestAnimationFrame(animate);
 
-  if (avatar) {
-    avatar.position.y = AVATAR_CONFIG.groundY + Math.sin(t * AVATAR_CONFIG.floatSpeed) * AVATAR_CONFIG.floatAmplitude;
-    avatar.rotation.y = t * AVATAR_CONFIG.rotateSpeed;
-  }
+    const t = clock.getElapsedTime();
 
-  renderer.render(scene, camera);
+    if (avatarRoot) {
+        avatarRoot.position.y =
+            Math.sin(t * AVATAR_CONFIG.floatSpeed) *
+            AVATAR_CONFIG.floatAmplitude;
+
+        // Keep facing forward
+        avatarRoot.rotation.y = 0;
+    }
+
+    renderer.render(scene, camera);
 }
 
 // -----------------------------------------------------------------------------
